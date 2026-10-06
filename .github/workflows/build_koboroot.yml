@@ -1,0 +1,40 @@
+name: Build KoboRoot archive
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build KoboRoot.tgz
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check shell syntax
+        run: |
+          for script in src/usr/local/kobocloud/*.sh; do
+            sh -n "$script"
+          done
+          bash -n src/usr/local/kobocloud/config.sh
+
+      - name: Build archive
+        run: ./makeKoboRoot.sh
+
+      - name: Verify archive contents
+        run: |
+          tar -tzf KoboRoot.tgz | grep -Fx 'usr/local/kobocloud/config_kobo.sh'
+          tar -tzf KoboRoot.tgz | grep -Fx 'usr/local/kobocloud/config_pc.sh'
+          tar -tzf KoboRoot.tgz | grep -Fx 'usr/local/kobocloud/udev_mount.sh'
+          tar -tzf KoboRoot.tgz | grep -Fx 'usr/local/kobocloud/udev_program.sh'
+
+      - name: Upload KoboRoot archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: KoboRoot
+          path: KoboRoot.tgz
+          if-no-files-found: error
